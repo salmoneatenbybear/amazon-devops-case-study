@@ -12,16 +12,16 @@ pipeline {
       }
     }
     stage('Build') {
-      steps {
-        sh '''
-        echo 📂 Listing contents for debug
-        ls -la
-        ls -la app/
+        steps {
+            sh '''
+            echo 📂 Listing contents for debug
+            ls -la
+            ls -la app/
 
-        echo 🐳 Building Docker image with tag: $TAG
-        docker build -t ${IMAGE_NAME}:${TAG} app/
-        '''
-      }
+            echo 🐳 Building Docker image with tag: latest
+            docker build --no-cache -t ${IMAGE_NAME}:latest app/
+            '''
+        }
     }
     stage('Test') {
       steps {
