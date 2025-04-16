@@ -26,12 +26,22 @@ pipeline {
     }
 
     stage('Test') {
-      steps {
-        sh '''
-          echo "🧪 Running test container"
-          docker run --rm ${IMAGE_NAME}:${TAG} curl -f http://localhost:3000 || exit 1
-        '''
-      }
+        steps {
+            sh '''
+            echo "🧪 Running test container in background..."
+            docker run -d -p 3000:3000 --name test-app ${IMAGE_NAME}:latest
+
+            echo "⏳ Waiting for app to be ready..."
+            sleep 5
+
+            echo "🔍 Curling localhost:3000"
+            curl -f http://localhost:3000 || (docker logs test-app && exit 1)
+
+            echo "🧹 Cleaning up container"
+            docker stop test-app
+            docker rm test-app
+            '''
+        }
     }
 
     stage('Push') {
