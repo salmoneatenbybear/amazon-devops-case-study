@@ -26,37 +26,28 @@ pipeline {
     stage('Test') {
       steps {
         sh '''
-        echo 🧪 Running test container in background...
+        echo 🧪 Starting container for test...
     
-        # Cleanup previous test container
+        # Clean up existing container if exists
         docker rm -f test-app || true
     
-        # Start the container
-        docker run -d -p 3000:3000 --name test-app ${IMAGE_NAME}:${TAG}
+        # Run container in background
+        docker run -d --name test-app ${IMAGE_NAME}:${TAG}
     
-        echo ⏳ Waiting for container to initialize...
+        echo ⏳ Waiting for the app to start inside container...
         sleep 5
     
-        # Get container's internal IP
-        CONTAINER_IP=$(docker inspect -f '{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}' test-app)
+        echo 🔍 Executing curl *inside* the container to localhost:3000
     
-        echo 🔍 Testing app at http://$CONTAINER_IP:3000
+        docker exec test-app sh -c "curl -sSf http://localhost:3000" || {
+          echo ❌ App is not responding inside container.
+          docker logs test-app
+          docker rm -f test-app
+          exit 1
+        }
     
-        # Try multiple times to connect before failing
-        for i in {1..10}; do
-          if curl -sSf http://$CONTAINER_IP:3000 > /dev/null; then
-            echo ✅ App is up!
-            docker rm -f test-app
-            exit 0
-          fi
-          echo "⌛ Waiting for app to respond... ($i)"
-          sleep 2
-        done
-    
-        echo ❌ App failed to respond. Dumping logs:
-        docker logs test-app
+        echo ✅ App responded successfully.
         docker rm -f test-app
-        exit 1
         '''
       }
     }
