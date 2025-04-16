@@ -1,0 +1,7 @@
+global:
+  scrape_interval: 15s
+
+scrape_configs:
+  - job_name: 'amazon-devops-app'
+    static_configs:
+      - targets: ['amazon-devops-service:80']
