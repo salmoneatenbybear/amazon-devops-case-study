@@ -11,9 +11,17 @@ pipeline {
       }
     }
     stage('Build') {
-      steps {
-        sh 'docker build -t ${IMAGE_NAME}:${BUILD_NUMBER} ./app'
-      }
+        steps {
+            sh '''
+            echo "Listing root and app/ contents for debug"
+            ls -la
+            ls -la app/
+
+            TAG=${GIT_COMMIT:-latest}
+            echo "Using tag: $TAG"
+            docker build -t ${IMAGE_NAME}:$TAG app/
+            '''
+        }
     }
     stage('Test') {
       steps {
