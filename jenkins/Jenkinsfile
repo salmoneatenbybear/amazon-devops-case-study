@@ -3,6 +3,7 @@ pipeline {
   environment {
     DOCKER_REGISTRY = 'adityasinghlikesjiujitsu'
     IMAGE_NAME = "${DOCKER_REGISTRY}/amazon-devops-app"
+    TAG = "latest"
   }
   stages {
     stage('Checkout') {
@@ -10,35 +11,49 @@ pipeline {
         git branch: 'main', url: 'https://github.com/salmoneatenbybear/amazon-devops-case-study.git'
       }
     }
-    stage('Build') {
-        steps {
-            sh '''
-            echo "Listing root and app/ contents for debug"
-            ls -la
-            ls -la app/
 
-            TAG=${GIT_COMMIT:-latest}
-            echo "Using tag: $TAG"
-            docker build -t ${IMAGE_NAME}:$TAG app/
-            '''
-        }
-    }
-    stage('Test') {
+    stage('Build') {
       steps {
-        sh 'docker run --rm ${IMAGE_NAME}:${BUILD_NUMBER} curl -f http://localhost:3000 || exit 1'
+        sh '''
+          echo "📂 Listing contents for debug"
+          ls -la
+          ls -la app/
+
+          echo "🐳 Building Docker image with tag: ${TAG}"
+          docker build -t ${IMAGE_NAME}:${TAG} app/
+        '''
       }
     }
+
+    stage('Test') {
+      steps {
+        sh '''
+          echo "🧪 Running test container"
+          docker run --rm ${IMAGE_NAME}:${TAG} curl -f http://localhost:3000 || exit 1
+        '''
+      }
+    }
+
     stage('Push') {
       steps {
         withCredentials([usernamePassword(credentialsId: 'dockerhub', usernameVariable: 'DOCKER_USERNAME', passwordVariable: 'DOCKER_PASSWORD')]) {
-          sh 'echo $DOCKER_PASSWORD | docker login -u $DOCKER_USERNAME --password-stdin'
-          sh 'docker push ${IMAGE_NAME}:${BUILD_NUMBER}'
+          sh '''
+            echo "🔐 Logging in to Docker Hub"
+            echo $DOCKER_PASSWORD | docker login -u $DOCKER_USERNAME --password-stdin
+
+            echo "📤 Pushing image: ${IMAGE_NAME}:${TAG}"
+            docker push ${IMAGE_NAME}:${TAG}
+          '''
         }
       }
     }
+
     stage('Deploy') {
       steps {
-        sh 'kubectl apply -f kubernetes/'
+        sh '''
+          echo "🚀 Deploying to Kubernetes"
+          kubectl apply -f kubernetes/
+        '''
       }
     }
   }
