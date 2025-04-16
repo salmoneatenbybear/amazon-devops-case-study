@@ -1,6 +1,9 @@
 # Use a minimal Python image
 FROM python:3.10-slim
 
+# Install curl (for healthcheck in Jenkins)
+RUN apt-get update && apt-get install -y curl
+
 # Set the working directory
 WORKDIR /app
 
