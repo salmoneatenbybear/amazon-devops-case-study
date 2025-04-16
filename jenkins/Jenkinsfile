@@ -28,27 +28,25 @@ pipeline {
             sh '''
             echo 🧪 Running test container in background...
 
-            # Stop & remove existing test container if it exists
+            # Stop & remove if already running
             docker rm -f test-app || true
 
-            # Start the container
+            # Start container with host port forwarding
             docker run -d -p 3000:3000 --name test-app ${IMAGE_NAME}:${TAG}
 
             echo ⏳ Waiting for app to be ready...
-            sleep 5
+            sleep 10
 
-            # Get the container's internal IP address
-            CONTAINER_IP=$(docker inspect -f '{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}' test-app)
-
-            echo 🔍 Curling http://$CONTAINER_IP:3000
-            curl -f http://$CONTAINER_IP:3000 || {
-            echo ❌ App is not responding. Container logs:
-            docker logs test-app
-            exit 1
-            }
-
+            echo 🔍 Curling localhost:3000
+            if curl -f http://localhost:3000; then
             echo ✅ App responded successfully!
             docker rm -f test-app
+            else
+            echo ❌ App is not responding. Logs:
+            docker logs test-app
+            docker rm -f test-app
+            exit 1
+            fi
             '''
         }
     }
